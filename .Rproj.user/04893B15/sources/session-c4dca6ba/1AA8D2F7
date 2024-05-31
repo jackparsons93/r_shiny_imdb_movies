@@ -1,0 +1,24 @@
+{
+    "id": "1AA8D2F7",
+    "path": "~/hello_shiny/country_wise_latest.csv",
+    "project_path": "country_wise_latest.csv",
+    "type": "text",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1717186026461.0,
+    "source_on_save": false,
+    "relative_order": 3,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1596790084,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1596790084,
+    "read_only": false,
+    "read_only_alternatives": []
+}
