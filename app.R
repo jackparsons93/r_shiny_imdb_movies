@@ -3,7 +3,8 @@ library(shiny)
 library(readr)
 library(dplyr)
 library(ggplot2)
-
+library(tidyr)
+library(wordcloud2)
 # Load the dataset
 file_path <- "imdb_top_1000.csv"  # Path to the dataset in the working directory
 
@@ -83,6 +84,51 @@ ui <- fluidPage(
                mainPanel(
                  plotOutput("aronofskyPlot"),
                  tableOutput("aronofskyTable")
+               )
+             )
+    ),
+    tabPanel("Steven Spielberg's Movies",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("spielberg_metric", "Select Metric:", 
+                             choices = c("IMDb Rating" = "IMDB_Rating", 
+                                         "Meta Score" = "Meta_score", 
+                                         "Gross" = "Gross"))
+               ),
+               mainPanel(
+                 plotOutput("spielbergPlot"),
+                 tableOutput("spielbergTable")
+               )
+             )
+    ),
+    
+    tabPanel("Distribution of IMDb Ratings",
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("This tab shows the distribution of IMDb ratings across the top 10 most frequent genres.")
+               ),
+               mainPanel(
+                 plotOutput("violinPlot")
+               )
+             )
+    ),
+    tabPanel("IMDb Score vs Revenue",
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("This tab shows the relationship between IMDb scores and revenue.")
+               ),
+               mainPanel(
+                 plotOutput("scatterPlot")
+               )
+             )
+    ),
+    tabPanel("Top Grossing Films Word Cloud",
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("This tab shows a word cloud made up of the titles of the top grossing films.")
+               ),
+               mainPanel(
+                 wordcloud2Output("wordcloudPlot")
                )
              )
     )
@@ -203,6 +249,73 @@ server <- function(input, output) {
       select(Series_Title, Released_Year, Genre, IMDB_Rating, Meta_score, Gross) %>%
       arrange(desc(!!sym(input$metric)))
   })
+  spielberg_data <- reactive({
+    imdb_data %>%
+      filter(Director == "Steven Spielberg") %>%
+      arrange(desc(!!sym(input$spielberg_metric)))
+  })
+  
+  output$spielbergPlot <- renderPlot({
+    ggplot(spielberg_data(), aes(x = reorder(Series_Title, !!sym(input$spielberg_metric)), y = !!sym(input$spielberg_metric))) +
+      geom_bar(stat = "identity", fill = "blue") +
+      coord_flip() +
+      labs(title = paste(input$spielberg_metric, "for Steven Spielberg's Movies"),
+           x = "Movie Title", y = input$spielberg_metric) +
+      theme_minimal()
+  })
+  
+  output$spielbergTable <- renderTable({
+    spielberg_data() %>%
+      select(Series_Title, Released_Year, Genre, IMDB_Rating, Meta_score, Gross) %>%
+      arrange(desc(!!sym(input$spielberg_metric)))
+  })
+  
+
+  
+  output$violinPlot <- renderPlot({
+    imdb_data_clean <- imdb_data %>%
+      mutate(Genre = strsplit(Genre, ", ")) %>%
+      unnest(Genre) %>%
+      filter(!is.na(IMDB_Rating)) %>%
+      count(Genre, sort = TRUE) %>%
+      top_n(10, n) %>%
+      inner_join(imdb_data %>%
+                   mutate(Genre = strsplit(Genre, ", ")) %>%
+                   unnest(Genre) %>%
+                   filter(!is.na(IMDB_Rating)), by = "Genre") 
+    
+    ggplot(imdb_data_clean, aes(x = Genre, y = IMDB_Rating)) +
+      geom_violin(trim = FALSE, fill = "skyblue", alpha = 0.7) +
+      geom_boxplot(width = 0.1, fill = "white") +
+      coord_flip() +
+      labs(title = "Distribution of IMDb Ratings Across Top 10 Most Frequent Genres",
+           x = "Genre", y = "IMDb Rating") +
+      theme_minimal()
+  })
+  
+  output$scatterPlot <- renderPlot({
+    ggplot(imdb_data, aes(x = IMDB_Rating, y = Gross)) +
+      geom_point(alpha = 0.7, color = "blue") +
+      geom_smooth(method = "lm", color = "red") +
+      labs(title = "Relationship Between IMDb Scores and Revenue",
+           x = "IMDb Rating", y = "Revenue") +
+      theme_minimal()
+  })
+  output$wordcloudPlot <- renderWordcloud2({
+    top_grossing_films <- imdb_data %>%
+      filter(!is.na(Gross)) %>%
+      arrange(desc(Gross)) %>%
+      slice(1:50) %>%
+      select(Series_Title)
+    
+    wordcloud2(
+      data = data.frame(word = top_grossing_films$Series_Title, freq = rep(1, nrow(top_grossing_films))), 
+      size = 0.2, 
+      rotateRatio = 0.5
+    )
+  })
+  
+  
 }
 
 # Run the application 
