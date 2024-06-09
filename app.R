@@ -5,6 +5,7 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(wordcloud2)
+library(shinyjs)
 # Load the dataset
 file_path <- "imdb_top_1000.csv"  # Path to the dataset in the working directory
 
@@ -128,15 +129,18 @@ ui <- fluidPage(
                  helpText("This tab shows a word cloud made up of the titles of the top grossing films.")
                ),
                mainPanel(
-                 wordcloud2Output("wordcloudPlot")
+                 wordcloud2Output("wordcloudPlot"),
+                 textOutput("selectedMovie"),
+                 tags$style("#selectedMovie {font-size: 24px; font-weight: bold;}")
                )
              )
     )
+    
   )
 )
 
 # Define server logic
-server <- function(input, output) {
+server <- function(input, output,session) {
   filtered_data <- reactive({
     if (input$genre == "All Genres") {
       imdb_data %>%
@@ -301,22 +305,49 @@ server <- function(input, output) {
            x = "IMDb Rating", y = "Revenue") +
       theme_minimal()
   })
+  top_grossing_films <- imdb_data %>%
+    filter(!is.na(Gross)) %>%
+    arrange(desc(Gross)) %>%
+    slice(1:100) %>%
+    select(Series_Title, Gross)
+  
   output$wordcloudPlot <- renderWordcloud2({
-    top_grossing_films <- imdb_data %>%
-      filter(!is.na(Gross)) %>%
-      arrange(desc(Gross)) %>%
-      slice(1:50) %>%
-      select(Series_Title)
-    
     wordcloud2(
-      data = data.frame(word = top_grossing_films$Series_Title, freq = rep(1, nrow(top_grossing_films))), 
-      size = 0.2, 
-      rotateRatio = 0.5
-    )
+      data = data.frame(word = top_grossing_films$Series_Title, freq = top_grossing_films$Gross), 
+      size = 0.3, 
+      rotateRatio = 0.5,
+      minRotation = -45,
+      maxRotation = 45,
+      color = 'random-light',
+      backgroundColor = "white"
+    ) %>%
+      htmlwidgets::onRender("
+        function(el, x) {
+          el.on('click', function(event) {
+            var word = event.target.textContent;
+            Shiny.setInputValue('wordcloudPlot_click', word);
+          });
+        }
+      ")
   })
   
+  output$selectedMovie <- renderText({
+    paste("Hover on a movie title in the word cloud to see its gross earnings.")
+  })
   
+  observeEvent(input$wordcloudPlot_click, {
+    selected_word <- input$wordcloudPlot_click
+    selected_gross <- top_grossing_films %>%
+      filter(Series_Title == selected_word) %>%
+      pull(Gross)
+    
+    output$selectedMovie <- renderText({
+      paste("Title:", selected_word, "- Gross Earnings: $", format(selected_gross, big.mark = ","))
+    })
+  })
 }
+  
+
 
 # Run the application 
 shinyApp(ui = ui, server = server)
