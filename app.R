@@ -172,7 +172,19 @@ ui <- fluidPage(
                  tags$style("#selectedDirector {font-size: 24px; font-weight: bold;}")
                )
              )
+    ),
+    tabPanel("Gross vs IMDb Score Bubble Plot",
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("This tab shows a bubble plot of the relationship between gross earnings and IMDb score.")
+               ),
+               mainPanel(
+                 plotOutput("grossVsImdbBubblePlot")
+               )
+             )
     )
+    
+
   )
 )
     
@@ -480,6 +492,19 @@ server <- function(input, output,session) {
     output$selectedDirector <- renderText({
       paste("Director:", selected_director, "- Average IMDb Rating:", round(selected_avg_rating, 2))
     })
+  })
+  # Data for bubble plot
+  bubble_plot_data <- imdb_data %>%
+    filter(!is.na(Gross) & !is.na(IMDB_Rating))
+  
+  output$grossVsImdbBubblePlot <- renderPlot({
+    ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, label = Series_Title)) +
+      geom_point(alpha = 0.7, color = "skyblue") +
+      scale_size_continuous(range = c(1, 10)) +
+      labs(title = "Gross vs IMDb Score Bubble Plot",
+           x = "IMDb Score", y = "Gross Earnings") +
+      theme_minimal() +
+      theme(legend.position = "none")
   })
 }
 
