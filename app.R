@@ -23,6 +23,7 @@ imdb_data <- tryCatch({
 
 # Define UI for application
 ui <- fluidPage(
+  useShinyjs(),
   titlePanel("IMDb Top 1000 Movies Explorer"),
   
   tabsetPanel(
@@ -134,10 +135,23 @@ ui <- fluidPage(
                  tags$style("#selectedMovie {font-size: 24px; font-weight: bold;}")
                )
              )
+    ),
+    tabPanel("Directors' Average IMDb Ratings Word Cloud",
+             sidebarLayout(
+               sidebarPanel(
+                 helpText("This tab shows a word cloud made up of directors' names, with size based on their average IMDb rating.")
+               ),
+               mainPanel(
+                 wordcloud2Output("directorsWordcloud"),
+                 textOutput("selectedDirector"),
+                 tags$style("#selectedDirector {font-size: 24px; font-weight: bold;}")
+               )
+             )
     )
-    
   )
+    
 )
+
 
 # Define server logic
 server <- function(input, output,session) {
@@ -345,7 +359,55 @@ server <- function(input, output,session) {
       paste("Title:", selected_word, "- Gross Earnings: $", format(selected_gross, big.mark = ","))
     })
   })
+  # Compute average IMDb rating for each director
+  director_avg_rating <- imdb_data %>%
+    filter(!is.na(IMDB_Rating)) %>%
+    group_by(Director) %>%
+    summarize(avg_rating = mean(IMDB_Rating, na.rm = TRUE)) %>%
+    arrange(desc(avg_rating)) %>%
+    slice(1:100)  # Top 100 directors by average rating
+  
+  # Scale the font sizes
+  director_avg_rating <- director_avg_rating %>%
+    mutate(rank = row_number(),
+           scaled_rating = avg_rating * (101 - rank) / 100)  # Decrease font size with rank
+  
+  output$directorsWordcloud <- renderWordcloud2({
+    wordcloud2(
+      data = data.frame(word = director_avg_rating$Director, freq = director_avg_rating$scaled_rating), 
+      size = 0.2,  # Base size
+      rotateRatio = 0.5,
+      minRotation = -45,
+      maxRotation = 45,
+      color = 'random-light',
+      backgroundColor = "white"
+    ) %>%
+      htmlwidgets::onRender("
+        function(el, x) {
+          el.on('click', function(event) {
+            var word = event.target.textContent;
+            Shiny.setInputValue('directorsWordcloud_click', word);
+          });
+        }
+      ")
+  })
+  
+  output$selectedDirector <- renderText({
+    paste("Hover on a director's name in the word cloud to see their average IMDb rating.")
+  })
+  
+  observeEvent(input$directorsWordcloud_click, {
+    selected_director <- input$directorsWordcloud_click
+    selected_avg_rating <- director_avg_rating %>%
+      filter(Director == selected_director) %>%
+      pull(avg_rating)
+    
+    output$selectedDirector <- renderText({
+      paste("Director:", selected_director, "- Average IMDb Rating:", round(selected_avg_rating, 2))
+    })
+  })
 }
+
   
 
 

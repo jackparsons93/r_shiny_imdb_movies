@@ -1,0 +1,12 @@
+name: r_shiny_imdb_movies
+title: r_shiny_imdb_movies
+username: christopherwilson
+account: christopherwilson
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 12154945
+bundleId: 8720651
+url: https://christopherwilson.shinyapps.io/r_shiny_imdb_movies/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
