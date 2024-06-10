@@ -20,7 +20,7 @@ imdb_data <- tryCatch({
 }, error = function(e) {
   stop("Error reading the dataset: ", e$message)
 })
-
+colnames(imdb_data)
 # Define UI for application
 ui <- fluidPage(
   useShinyjs(),
@@ -182,7 +182,35 @@ ui <- fluidPage(
                  plotOutput("grossVsImdbBubblePlot")
                )
              )
-    )
+    ),
+  tabPanel("Top 25 Movies",
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("top25Criterion", "Select Criterion:", 
+                           choices = c("Gross", "IMDb Rating", "Meta Score")),
+               helpText("This tab shows the top 25 movies based on the selected criterion.")
+             ),
+             mainPanel(
+               plotOutput("top25MoviesBarChart"),
+               uiOutput("top25MoviesText"),
+               tags$style("#top25MoviesText {font-size: 16px; font-weight: bold;}")
+             )
+           )
+  ),
+  tabPanel("Top Directors",
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("topDirectorsCriterion", "Select Criterion:", 
+                           choices = c("Average Gross", "Average IMDb Score", "Average Meta Score")),
+               helpText("This tab shows the top directors based on the selected criterion.")
+             ),
+             mainPanel(
+               plotOutput("topDirectorsBarChart"),
+               uiOutput("topDirectorsText"),
+               tags$style("#topDirectorsText {font-size: 16px; font-weight: bold;}")
+             )
+           )
+  )
     
 
   )
@@ -505,6 +533,73 @@ server <- function(input, output,session) {
            x = "IMDb Score", y = "Gross Earnings") +
       theme_minimal() +
       theme(legend.position = "none")
+  })
+
+top_25_movies <- reactive({
+  criterion <- switch(input$top25Criterion,
+                      "Gross" = "Gross",
+                      "IMDb Rating" = "IMDB_Rating",
+                      "Meta Score" = "Meta_score")
+  
+  imdb_data %>%
+    filter(!is.na(.data[[criterion]])) %>%
+    arrange(desc(.data[[criterion]])) %>%
+    slice(1:25) %>%
+    select(Series_Title, !!sym(criterion)) %>%
+    rename(Value = !!sym(criterion))
+})
+
+output$top25MoviesBarChart <- renderPlot({
+  ggplot(top_25_movies(), aes(x = reorder(Series_Title, Value), y = Value)) +
+    geom_bar(stat = "identity", fill = "skyblue") +
+    coord_flip() +
+    labs(title = paste("Top 25 Movies by", input$top25Criterion),
+         x = "Movie Title", y = input$top25Criterion) +
+    theme_minimal()
+})
+
+output$top25MoviesText <- renderUI({
+  HTML(paste(
+    apply(top_25_movies(), 1, function(row) {
+      paste("Title:", row["Series_Title"], "-", input$top25Criterion, ":", row["Value"])
+    }),
+    collapse = "<br>"
+  ))
+})
+
+  # Reactive expression to get the top directors based on selected criterion
+  top_directors <- reactive({
+    criterion <- switch(input$topDirectorsCriterion,
+                        "Average Gross" = "Gross",
+                        "Average IMDb Score" = "IMDB_Rating",
+                        "Average Meta Score" = "Meta_score")
+    
+    imdb_data %>%
+      mutate(across(all_of(criterion), ~as.numeric(gsub("[^0-9.]", "", .)))) %>%
+      filter(!is.na(.data[[criterion]])) %>%
+      group_by(Director) %>%
+      summarize(Average_Value = mean(.data[[criterion]], na.rm = TRUE)) %>%
+      arrange(desc(Average_Value)) %>%
+      slice(1:25) %>%
+      select(Director, Average_Value)
+  })
+  
+  output$topDirectorsBarChart <- renderPlot({
+    ggplot(top_directors(), aes(x = reorder(Director, Average_Value), y = Average_Value)) +
+      geom_bar(stat = "identity", fill = "skyblue") +
+      coord_flip() +
+      labs(title = paste("Top Directors by", input$topDirectorsCriterion),
+           x = "Director", y = input$topDirectorsCriterion) +
+      theme_minimal()
+  })
+  
+  output$topDirectorsText <- renderUI({
+    HTML(paste(
+      apply(top_directors(), 1, function(row) {
+        paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
+      }),
+      collapse = "<br>"
+    ))
   })
 }
 
