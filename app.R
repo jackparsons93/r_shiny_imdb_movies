@@ -65,6 +65,18 @@ ui <- fluidPage(
              )
     
   ),
+  tabPanel("Top 25 Rated Movies by IMDb",
+           sidebarLayout(
+             sidebarPanel(
+               helpText("This tab shows a bar chart of the top 25 rated movies by IMDb rating.")
+             ),
+             mainPanel(
+               plotOutput("topRatedMoviesBarChart"),
+               uiOutput("topRatedMoviesText"),
+               tags$style("#topRatedMoviesText {font-size: 16px; font-weight: bold;}")
+             )
+           )
+  ),
     tabPanel("Top 15 Directors by Average Gross",
              sidebarLayout(
                sidebarPanel(
@@ -217,6 +229,30 @@ server <- function(input, output,session) {
     average_revenues() %>%
       arrange(desc(avg_revenue))
   })
+  top_25_rated_movies <- imdb_data %>%
+    filter(!is.na(IMDB_Rating)) %>%
+    arrange(desc(IMDB_Rating)) %>%
+    slice(1:25) %>%
+    select(Series_Title, IMDB_Rating)
+  
+  output$topRatedMoviesBarChart <- renderPlot({
+    ggplot(top_25_rated_movies, aes(x = reorder(Series_Title, IMDB_Rating), y = IMDB_Rating)) +
+      geom_bar(stat = "identity", fill = "skyblue") +
+      coord_flip() +
+      labs(title = "Top 25 Rated Movies by IMDb",
+           x = "Movie Title", y = "IMDb Rating") +
+      theme_minimal()
+  })
+  
+  output$topRatedMoviesText <- renderUI({
+    HTML(paste(
+      apply(top_25_rated_movies, 1, function(row) {
+        paste("Title:", row["Series_Title"], "- IMDb Rating:", row["IMDB_Rating"])
+      }),
+      collapse = "<br>"
+    ))
+  })
+
   
   top_directors <- reactive({
     imdb_data %>%
