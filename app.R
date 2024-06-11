@@ -218,7 +218,7 @@ ui <- fluidPage(
                helpText("This tab shows a radar plot of the top 5 directors based on their average IMDb rating, Meta score, and Gross earnings.")
              ),
              mainPanel(
-               plotOutput("radarPlot")
+               plotOutput("radarPlot", width = "800px", height = "800px")
              )
            )
   )
