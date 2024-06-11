@@ -242,6 +242,10 @@ server <- function(input, output,session) {
         filter(Director == input$director)
     }
   })
+  imdb_data <- imdb_data %>%
+    mutate(Series_Title = ifelse(Series_Title == "Star Wars: Episode VII - The Force Awakens", 
+                                 "Star Wars: Episode VII", 
+                                 Series_Title))
   
   output$ratingPlot <- renderPlot({
     ggplot(filtered_data(), aes(x = reorder(Series_Title, IMDB_Rating), y = IMDB_Rating)) +
