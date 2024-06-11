@@ -6,6 +6,7 @@ library(ggplot2)
 library(tidyr)
 library(wordcloud2)
 library(shinyjs)
+library(fmsb)
 # Load the dataset
 file_path <- "imdb_top_1000.csv"  # Path to the dataset in the working directory
 
@@ -208,6 +209,16 @@ ui <- fluidPage(
              ),
              mainPanel(
                plotOutput("yearRatingBubblePlot")
+             )
+           )
+  ),
+  tabPanel("Radar Plot: Top 5 Directors",
+           sidebarLayout(
+             sidebarPanel(
+               helpText("This tab shows a radar plot of the top 5 directors based on their average IMDb rating, Meta score, and Gross earnings.")
+             ),
+             mainPanel(
+               plotOutput("radarPlot")
              )
            )
   )
@@ -600,6 +611,42 @@ output$yearRatingBubblePlot <- renderPlot({
          x = "Released Year", y = "IMDb Rating") +
     theme_minimal() +
     theme(legend.position = "right")
+})
+# Radar plot for top 5 directors with normalization
+top_5_directors_data <- reactive({
+  imdb_data %>%
+    filter(!is.na(Gross) & !is.na(IMDB_Rating) & !is.na(Meta_score)) %>%
+    mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross))) %>%
+    group_by(Director) %>%
+    summarize(
+      avg_gross = mean(Gross, na.rm = TRUE),
+      avg_imdb = mean(IMDB_Rating, na.rm = TRUE),
+      avg_meta = mean(Meta_score, na.rm = TRUE)
+    ) %>%
+    arrange(desc(avg_imdb)) %>%
+    slice(1:5) %>%
+    mutate(
+      avg_gross = (avg_gross - min(avg_gross)) / (max(avg_gross) - min(avg_gross)),
+      avg_imdb = (avg_imdb - min(avg_imdb)) / (max(avg_imdb) - min(avg_imdb)),
+      avg_meta = (avg_meta - min(avg_meta)) / (max(avg_meta) - min(avg_meta))
+    )
+})
+
+output$radarPlot <- renderPlot({
+  library(fmsb)
+  
+  data <- top_5_directors_data()
+  directors <- data$Director  # Save directors' names before transformation
+  rownames(data) <- directors
+  data <- data[,-1]
+  data <- rbind(rep(1, ncol(data)), rep(0, ncol(data)), data)
+  
+  colors <- rainbow(nrow(data) - 2)
+  radarchart(data, axistype = 1, 
+             pcol = colors, pfcol = scales::alpha(colors, 0.5), plwd = 2,
+             cglcol = "grey", cglty = 1, axislabcol = "grey", caxislabels = seq(0, 1, 0.2), cglwd = 0.8,
+             vlcex = 0.8)
+  legend(x = "topright", legend = directors, col = colors, lty = 1, lwd = 2)
 })
 }
 
