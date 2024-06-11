@@ -210,6 +210,16 @@ ui <- fluidPage(
                tags$style("#topDirectorsText {font-size: 16px; font-weight: bold;}")
              )
            )
+  ),
+  tabPanel("Bubble Plot: Year vs. Rating",
+           sidebarLayout(
+             sidebarPanel(
+               helpText("This tab shows a bubble plot with Released Year on the X-axis, IMDb Rating on the Y-axis, bubble size representing the number of votes, and bubble color representing the genre.")
+             ),
+             mainPanel(
+               plotOutput("yearRatingBubblePlot")
+             )
+           )
   )
     
 
@@ -601,6 +611,22 @@ output$top25MoviesText <- renderUI({
       collapse = "<br>"
     ))
   })
+
+# Data for bubble plot
+bubble_plot_data <- imdb_data %>%
+  filter(!is.na(Released_Year) & !is.na(IMDB_Rating) & !is.na(No_of_Votes) & !is.na(Genre)) %>%
+  mutate(Genre = strsplit(Genre, ", ")) %>%
+  unnest(Genre)
+
+output$yearRatingBubblePlot <- renderPlot({
+  ggplot(bubble_plot_data, aes(x = as.numeric(Released_Year), y = IMDB_Rating, size = No_of_Votes, color = Genre, label = Series_Title)) +
+    geom_point(alpha = 0.7) +
+    scale_size_continuous(range = c(1, 15)) +
+    labs(title = "Bubble Plot: Year vs. Rating",
+         x = "Released Year", y = "IMDb Rating") +
+    theme_minimal() +
+    theme(legend.position = "right")
+})
 }
 
   
