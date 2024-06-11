@@ -77,17 +77,7 @@ ui <- fluidPage(
              )
            )
   ),
-    tabPanel("Top 15 Directors by Average Gross",
-             sidebarLayout(
-               sidebarPanel(
-                 helpText("This tab shows the top 15 directors by average gross.")
-               ),
-               mainPanel(
-                 plotOutput("directorPlot"),
-                 tableOutput("directorTable")
-               )
-             )
-    ),
+  
     tabPanel("Gross Earnings by Director",
              sidebarLayout(
                sidebarPanel(
@@ -260,6 +250,8 @@ server <- function(input, output,session) {
   average_revenues <- reactive({
     imdb_data %>%
       filter(!is.na(Gross)) %>%
+      mutate(Genre = strsplit(Genre, ", ")) %>%
+      unnest(Genre) %>%
       group_by(Genre) %>%
       summarize(avg_revenue = mean(Gross, na.rm = TRUE)) %>%
       arrange(desc(avg_revenue)) %>%
@@ -273,11 +265,6 @@ server <- function(input, output,session) {
       labs(title = "Top 15 Average Revenues by Genre",
            x = "Genre", y = "Average Revenue") +
       theme_minimal()
-  })
-  
-  output$revenueTable <- renderTable({
-    average_revenues() %>%
-      arrange(desc(avg_revenue))
   })
   top_25_rated_movies <- imdb_data %>%
     filter(!is.na(IMDB_Rating)) %>%
@@ -313,19 +300,6 @@ server <- function(input, output,session) {
       slice(1:15)
   })
   
-  output$directorPlot <- renderPlot({
-    ggplot(top_directors(), aes(x = reorder(Director, avg_gross), y = avg_gross)) +
-      geom_bar(stat = "identity", fill = "lightblue") +
-      coord_flip() +
-      labs(title = "Top 15 Directors by Average Gross",
-           x = "Director", y = "Average Gross") +
-      theme_minimal()
-  })
-  
-  output$directorTable <- renderTable({
-    top_directors() %>%
-      arrange(desc(avg_gross))
-  })
   
   director_gross <- reactive({
     imdb_data %>%
