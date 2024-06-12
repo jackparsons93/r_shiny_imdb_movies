@@ -133,17 +133,6 @@ ui <- fluidPage(
            )
   ),
   
-
-  tabPanel("Radar Plot: Top 5 Directors",
-           sidebarLayout(
-             sidebarPanel(
-               helpText("This tab shows a radar plot of the top 5 directors based on their average IMDb rating, Meta score, and Gross earnings.")
-             ),
-             mainPanel(
-               plotOutput("radarPlot", width = "800px", height = "800px")
-             )
-           )
-  ),
   tabPanel("Star Wars Movies",
            sidebarLayout(
              sidebarPanel(
@@ -541,22 +530,6 @@ top_5_directors_data <- reactive({
     )
 })
 
-output$radarPlot <- renderPlot({
-  library(fmsb)
-  
-  data <- top_5_directors_data()
-  directors <- data$Director  # Save directors' names before transformation
-  rownames(data) <- directors
-  data <- data[,-1]
-  data <- rbind(rep(1, ncol(data)), rep(0, ncol(data)), data)
-  
-  colors <- rainbow(nrow(data) - 2)
-  radarchart(data, axistype = 1, 
-             pcol = colors, pfcol = scales::alpha(colors, 0.5), plwd = 2,
-             cglcol = "grey", cglty = 1, axislabcol = "grey", caxislabels = seq(0, 1, 0.2), cglwd = 0.8,
-             vlcex = 0.8)
-  legend(x = "topright", legend = directors, col = colors, lty = 1, lwd = 2)
-})
 # Data for Star Wars movies
   star_wars_data <- reactive({
     imdb_data %>%
