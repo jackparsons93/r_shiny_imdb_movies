@@ -59,35 +59,6 @@ ui <- fluidPage(
              )
     ),
     
-    tabPanel("Darren Aronofsky's Movies",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("metric", "Select Metric:", 
-                             choices = c("IMDb Rating" = "IMDB_Rating", 
-                                         "Meta Score" = "Meta_score", 
-                                         "Gross" = "Gross"))
-               ),
-               mainPanel(
-                 plotOutput("aronofskyPlot"),
-                 tableOutput("aronofskyTable")
-               )
-             )
-    ),
-    tabPanel("Steven Spielberg's Movies",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("spielberg_metric", "Select Metric:", 
-                             choices = c("IMDb Rating" = "IMDB_Rating", 
-                                         "Meta Score" = "Meta_score", 
-                                         "Gross" = "Gross"))
-               ),
-               mainPanel(
-                 plotOutput("spielbergPlot"),
-                 tableOutput("spielbergTable")
-               )
-             )
-    ),
-    
     tabPanel("Distribution of IMDb Ratings",
              sidebarLayout(
                sidebarPanel(
@@ -318,53 +289,6 @@ server <- function(input, output,session) {
       collapse = "<br>"
     ))
   })
-
-  
- 
-  
-  
-  aronofsky_data <- reactive({
-    imdb_data %>%
-      filter(Director == "Darren Aronofsky") %>%
-      arrange(desc(!!sym(input$metric)))
-  })
-  
-  output$aronofskyPlot <- renderPlot({
-    ggplot(aronofsky_data(), aes(x = reorder(Series_Title, !!sym(input$metric)), y = !!sym(input$metric))) +
-      geom_bar(stat = "identity", fill = "orange") +
-      coord_flip() +
-      labs(title = paste(input$metric, "for Darren Aronofsky's Movies"),
-           x = "Movie Title", y = input$metric) +
-      theme_minimal()
-  })
-  
-  output$aronofskyTable <- renderTable({
-    aronofsky_data() %>%
-      select(Series_Title, Released_Year, Genre, IMDB_Rating, Meta_score, Gross) %>%
-      arrange(desc(!!sym(input$metric)))
-  })
-  spielberg_data <- reactive({
-    imdb_data %>%
-      filter(Director == "Steven Spielberg") %>%
-      arrange(desc(!!sym(input$spielberg_metric)))
-  })
-  
-  output$spielbergPlot <- renderPlot({
-    ggplot(spielberg_data(), aes(x = reorder(Series_Title, !!sym(input$spielberg_metric)), y = !!sym(input$spielberg_metric))) +
-      geom_bar(stat = "identity", fill = "blue") +
-      coord_flip() +
-      labs(title = paste(input$spielberg_metric, "for Steven Spielberg's Movies"),
-           x = "Movie Title", y = input$spielberg_metric) +
-      theme_minimal()
-  })
-  
-  output$spielbergTable <- renderTable({
-    spielberg_data() %>%
-      select(Series_Title, Released_Year, Genre, IMDB_Rating, Meta_score, Gross) %>%
-      arrange(desc(!!sym(input$spielberg_metric)))
-  })
-  
-
   
   output$violinPlot <- renderPlot({
     imdb_data_clean <- imdb_data %>%
