@@ -190,19 +190,20 @@ ui <- fluidPage(
            )
   ),
   tabPanel("Top Directors",
-           sidebarLayout(
-             sidebarPanel(
-               selectInput("topDirectorsCriterion", "Select Criterion:", 
-                           choices = c("Average Gross", "Average IMDb Score", "Average Meta Score")),
-               helpText("This tab shows the top directors based on the selected criterion.")
-             ),
-             mainPanel(
-               plotOutput("topDirectorsBarChart"),
-               uiOutput("topDirectorsText"),
-               tags$style("#topDirectorsText {font-size: 16px; font-weight: bold;}")
-             )
-           )
-  ),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("topDirectorsCriterion", "Select Criterion:",
+                  choices = c("Average Gross", "Average IMDb Score", "Average Meta Score")),
+      sliderInput("numTopDirectors", "Number of Top Directors:", 
+                  min = 1, max = 50, value = 25)
+    ),
+    mainPanel(
+      plotOutput("topDirectorsBarChart"),
+      uiOutput("topDirectorsText")
+    )
+  )
+),
+  
   tabPanel("Bubble Plot: Year vs. Rating",
            sidebarLayout(
              sidebarPanel(
@@ -520,7 +521,7 @@ server <- function(input, output,session) {
   })
   
   output$selectedDirector <- renderText({
-    paste("Hover on a director's name in the word cloud to see their average IMDb rating.")
+    paste("Directors Name Size Average IMDB Rating")
   })
   
   observeEvent(input$directorsWordcloud_click, {
@@ -585,40 +586,40 @@ output$top25MoviesText <- renderUI({
   ))
 })
 
-  # Reactive expression to get the top directors based on selected criterion
-  top_directors <- reactive({
-    criterion <- switch(input$topDirectorsCriterion,
-                        "Average Gross" = "Gross",
-                        "Average IMDb Score" = "IMDB_Rating",
-                        "Average Meta Score" = "Meta_score")
-    
-    imdb_data %>%
-      mutate(across(all_of(criterion), ~as.numeric(gsub("[^0-9.]", "", .)))) %>%
-      filter(!is.na(.data[[criterion]])) %>%
-      group_by(Director) %>%
-      summarize(Average_Value = mean(.data[[criterion]], na.rm = TRUE)) %>%
-      arrange(desc(Average_Value)) %>%
-      slice(1:25) %>%
-      select(Director, Average_Value)
-  })
+# Reactive expression to get the top directors based on selected criterion
+top_directors <- reactive({
+  criterion <- switch(input$topDirectorsCriterion,
+                      "Average Gross" = "Gross",
+                      "Average IMDb Score" = "IMDB_Rating",
+                      "Average Meta Score" = "Meta_score")
   
-  output$topDirectorsBarChart <- renderPlot({
-    ggplot(top_directors(), aes(x = reorder(Director, Average_Value), y = Average_Value)) +
-      geom_bar(stat = "identity", fill = "skyblue") +
-      coord_flip() +
-      labs(title = paste("Top Directors by", input$topDirectorsCriterion),
-           x = "Director", y = input$topDirectorsCriterion) +
-      theme_minimal()
-  })
-  
-  output$topDirectorsText <- renderUI({
-    HTML(paste(
-      apply(top_directors(), 1, function(row) {
-        paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
-      }),
-      collapse = "<br>"
-    ))
-  })
+  imdb_data %>%
+    mutate(across(all_of(criterion), ~as.numeric(gsub("[^0-9.]", "", .)))) %>%
+    filter(!is.na(.data[[criterion]])) %>%
+    group_by(Director) %>%
+    summarize(Average_Value = mean(.data[[criterion]], na.rm = TRUE)) %>%
+    arrange(desc(Average_Value)) %>%
+    slice(1:input$numTopDirectors) %>%
+    select(Director, Average_Value)
+})
+
+output$topDirectorsBarChart <- renderPlot({
+  ggplot(top_directors(), aes(x = reorder(Director, Average_Value), y = Average_Value)) +
+    geom_bar(stat = "identity", fill = "skyblue") +
+    coord_flip() +
+    labs(title = paste("Top Directors by", input$topDirectorsCriterion),
+         x = "Director", y = input$topDirectorsCriterion) +
+    theme_minimal()
+})
+
+output$topDirectorsText <- renderUI({
+  HTML(paste(
+    apply(top_directors(), 1, function(row) {
+      paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
+    }),
+    collapse = "<br>"
+  ))
+})
 
 # Data for bubble plot
 bubble_plot_data <- imdb_data %>%
