@@ -135,6 +135,17 @@ ui <- fluidPage(
                plotOutput("franchisePlot")
              )
            )
+  ),
+  tabPanel("Actor Analysis",
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("actorMetric", "Select Metric:",
+                           choices = c("Average Gross", "Average Meta Score", "Average IMDb Score", "Number of Votes"))
+             ),
+             mainPanel(
+               plotOutput("actorPlot")
+             )
+           )
   )
   
     
@@ -557,6 +568,30 @@ output$franchisePlot <- renderPlot({
     coord_flip() +
     labs(title = paste(input$franchiseMetric, "of", input$franchise, "Movies"),
          x = "Movie Title", y = input$franchiseMetric) +
+    theme_minimal() +
+    theme(legend.position = "none")
+})
+output$actorPlot <- renderPlot({
+  metric <- switch(input$actorMetric,
+                   "Average Gross" = "Gross",
+                   "Average Meta Score" = "Meta_score",
+                   "Average IMDb Score" = "IMDB_Rating",
+                   "Number of Votes" = "No_of_Votes")
+  
+  actor_data <- imdb_data %>%
+    select(contains("Star"), Gross, Meta_score, IMDB_Rating, No_of_Votes) %>%
+    gather(key = "Star", value = "Actor", contains("Star")) %>%
+    filter(!is.na(Actor) & !is.na(.data[[metric]])) %>%
+    group_by(Actor) %>%
+    summarize(Average_Value = mean(.data[[metric]], na.rm = TRUE)) %>%
+    arrange(desc(Average_Value)) %>%
+    slice(1:25)
+  
+  ggplot(actor_data, aes(x = reorder(Actor, Average_Value), y = Average_Value, fill = Actor)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = paste(input$actorMetric, "by Actor"),
+         x = "Actor", y = input$actorMetric) +
     theme_minimal() +
     theme(legend.position = "none")
 })

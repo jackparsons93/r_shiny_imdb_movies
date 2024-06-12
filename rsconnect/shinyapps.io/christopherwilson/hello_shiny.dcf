@@ -5,7 +5,7 @@ account: christopherwilson
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 12105086
-bundleId: 8728864
+bundleId: 8733911
 url: https://christopherwilson.shinyapps.io/hello_shiny/
 version: 1
 asMultiple: FALSE
