@@ -54,44 +54,7 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Top 25 Grossing Movies",
-             sidebarLayout(
-               sidebarPanel(
-                 helpText("This tab shows a bar chart and list of the top 25 grossing movies.")
-               ),
-               mainPanel(
-                 plotOutput("topGrossingMoviesBarChart"),
-                 uiOutput("topGrossingMoviesText"),  # Changed from textOutput to uiOutput
-                 tags$style("#topGrossingMoviesText {font-size: 16px; font-weight: bold;}")
-               )
-             )
     
-  ),
-  tabPanel("Top 25 Rated Movies by IMDb",
-           sidebarLayout(
-             sidebarPanel(
-               helpText("This tab shows a bar chart of the top 25 rated movies by IMDb rating.")
-             ),
-             mainPanel(
-               plotOutput("topRatedMoviesBarChart"),
-               uiOutput("topRatedMoviesText"),
-               tags$style("#topRatedMoviesText {font-size: 16px; font-weight: bold;}")
-             )
-           )
-  ),
-  
-    tabPanel("Gross Earnings by Director",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("selected_director", "Select Director:", 
-                             choices = unique(imdb_data$Director))
-               ),
-               mainPanel(
-                 plotOutput("grossPlot"),
-                 tableOutput("grossTable")
-               )
-             )
-    ),
     tabPanel("Darren Aronofsky's Movies",
              sidebarLayout(
                sidebarPanel(
@@ -320,59 +283,7 @@ server <- function(input, output,session) {
   })
 
   
-  top_directors <- reactive({
-    imdb_data %>%
-      filter(!is.na(Gross)) %>%
-      group_by(Director) %>%
-      summarize(avg_gross = mean(Gross, na.rm = TRUE)) %>%
-      arrange(desc(avg_gross)) %>%
-      slice(1:15)
-  })
-  
-  
-  director_gross <- reactive({
-    imdb_data %>%
-      filter(Director == input$selected_director) %>%
-      select(Series_Title, Gross) %>%
-      arrange(desc(Gross))
-  })
-  
-  output$grossPlot <- renderPlot({
-    ggplot(director_gross(), aes(x = reorder(Series_Title, Gross), y = Gross)) +
-      geom_bar(stat = "identity", fill = "lightcoral") +
-      coord_flip() +
-      labs(title = paste("Gross Earnings for Movies Directed by", input$selected_director),
-           x = "Movie Title", y = "Gross Earnings") +
-      theme_minimal()
-  })
-  
-  output$grossTable <- renderTable({
-    director_gross()
-  })
-  # Top 25 grossing movies
-  top_25_grossing_movies <- imdb_data %>%
-    filter(!is.na(Gross)) %>%
-    arrange(desc(Gross)) %>%
-    slice(1:25) %>%
-    select(Series_Title, Gross)
-  
-  output$topGrossingMoviesBarChart <- renderPlot({
-    ggplot(top_25_grossing_movies, aes(x = reorder(Series_Title, Gross), y = Gross)) +
-      geom_bar(stat = "identity", fill = "skyblue") +
-      coord_flip() +
-      labs(title = "Top 25 Grossing Movies",
-           x = "Movie Title", y = "Gross Earnings") +
-      theme_minimal()
-  })
-  
-  output$topGrossingMoviesText <- renderUI({
-    HTML(paste(
-      apply(top_25_grossing_movies, 1, function(row) {
-        paste(row["Series_Title"], ":", format(as.numeric(row["Gross"]), big.mark = ","), sep = "")
-      }),
-      collapse = "<br>"
-    ))
-  })
+ 
   
   
   aronofsky_data <- reactive({
