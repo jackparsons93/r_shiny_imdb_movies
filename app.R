@@ -43,14 +43,14 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Average Revenues by Genre",
+    tabPanel("Genre Analysis",
              sidebarLayout(
                sidebarPanel(
-                 helpText("This tab shows the average revenues for the top 15 genres.")
+                 selectInput("genreCriterion", "Select Criterion:",
+                             choices = c("Average Revenue", "Average IMDb Score", "Average Meta Score", "Average Number of Votes"))
                ),
                mainPanel(
-                 plotOutput("revenuePlot"),
-                 tableOutput("revenueTable")
+                 plotOutput("revenuePlot")
                )
              )
     ),
@@ -239,23 +239,31 @@ server <- function(input, output,session) {
       arrange(desc(IMDB_Rating))
   })
   
-  average_revenues <- reactive({
+  # Reactive expression to get the average values by genre based on selected criterion
+  average_values_by_genre <- reactive({
+    criterion <- switch(input$genreCriterion,
+                        "Average Revenue" = "Gross",
+                        "Average IMDb Score" = "IMDB_Rating",
+                        "Average Meta Score" = "Meta_score",
+                        "Average Number of Votes" = "No_of_Votes")
+    
     imdb_data %>%
-      filter(!is.na(Gross)) %>%
+      filter(!is.na(.data[[criterion]])) %>%
       mutate(Genre = strsplit(Genre, ", ")) %>%
       unnest(Genre) %>%
       group_by(Genre) %>%
-      summarize(avg_revenue = mean(Gross, na.rm = TRUE)) %>%
-      arrange(desc(avg_revenue)) %>%
-      slice(1:15)
+      summarize(avg_value = mean(.data[[criterion]], na.rm = TRUE)) %>%
+      arrange(desc(avg_value)) %>%
+      slice(1:15) %>%
+      select(Genre, avg_value)
   })
   
   output$revenuePlot <- renderPlot({
-    ggplot(average_revenues(), aes(x = reorder(Genre, avg_revenue), y = avg_revenue)) +
+    ggplot(average_values_by_genre(), aes(x = reorder(Genre, avg_value), y = avg_value)) +
       geom_bar(stat = "identity", fill = "lightgreen") +
       coord_flip() +
-      labs(title = "Top 15 Average Revenues by Genre",
-           x = "Genre", y = "Average Revenue") +
+      labs(title = paste("Top 15 Genres by", input$genreCriterion),
+           x = "Genre", y = input$genreCriterion) +
       theme_minimal()
   })
   top_25_rated_movies <- imdb_data %>%
