@@ -29,7 +29,7 @@ ui <- fluidPage(
   titlePanel("IMDb Top 1000 Movies Explorer"),
   
   tabsetPanel(
-    tabPanel("IMDb Ratings",
+    tabPanel("Director Viewer",
              sidebarLayout(
                sidebarPanel(
                  selectInput("genre", "Select Genre:", 
