@@ -140,7 +140,9 @@ ui <- fluidPage(
            sidebarLayout(
              sidebarPanel(
                selectInput("actorMetric", "Select Metric:",
-                           choices = c("Average Gross", "Average Meta Score", "Average IMDb Score", "Number of Votes"))
+                           choices = c("Average Gross", "Average Meta Score", "Average IMDb Score", "Number of Votes")),
+               sliderInput("numActors", "Number of Actors to Display:", 
+                           min = 1, max = 50, value = 25)
              ),
              mainPanel(
                plotOutput("actorPlot")
@@ -585,7 +587,7 @@ output$actorPlot <- renderPlot({
     group_by(Actor) %>%
     summarize(Average_Value = mean(.data[[metric]], na.rm = TRUE)) %>%
     arrange(desc(Average_Value)) %>%
-    slice(1:25)
+    slice(1:input$numActors)
   
   ggplot(actor_data, aes(x = reorder(Actor, Average_Value), y = Average_Value, fill = Actor)) +
     geom_bar(stat = "identity") +
