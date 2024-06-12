@@ -447,7 +447,7 @@ server <- function(input, output,session) {
       minRotation = -45,
       maxRotation = 45,
       color = 'random-light',
-      backgroundColor = "white"
+      backgroundColor = "black"
     ) %>%
       htmlwidgets::onRender("
         function(el, x) {
@@ -493,7 +493,7 @@ server <- function(input, output,session) {
       rotateRatio = 0.5,
       minRotation = -45,
       maxRotation = 45,
-      color = 'random-light',
+      color = 'random-dark',
       backgroundColor = "white"
     ) %>%
       htmlwidgets::onRender("
