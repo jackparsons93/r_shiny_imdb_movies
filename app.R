@@ -70,18 +70,18 @@ ui <- fluidPage(
                )
              )
     ),
-    
-    tabPanel("Combined Plots",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("plotType", "Select Plot Type:", 
-                             choices = c("Violin Plot", "Scatter Plot"))
-               ),
-               mainPanel(
-                 plotOutput("combinedPlot")
+
+      tabPanel("Combined Plots",
+               sidebarLayout(
+                 sidebarPanel(
+                   selectInput("plotType", "Select Plot Type:", 
+                               choices = c("Violin Plot", "Scatter Plot", "Correlation Plot"))
+                 ),
+                 mainPanel(
+                   plotOutput("combinedPlot")
+                 )
                )
-             )
-    ),
+      ),
 
     tabPanel("Bubble Plots",
              sidebarLayout(
@@ -253,7 +253,7 @@ server <- function(input, output,session) {
     ))
   })
   
-  output$combinedPlot <- renderPlot({
+output$combinedPlot <- renderPlot({
     if (input$plotType == "Violin Plot") {
       imdb_data_clean <- imdb_data %>%
         mutate(Genre = strsplit(Genre, ", ")) %>%
@@ -273,12 +273,21 @@ server <- function(input, output,session) {
         labs(title = "Distribution of IMDb Ratings Across Top 10 Most Frequent Genres",
              x = "Genre", y = "IMDb Rating") +
         theme_minimal()
+      
     } else if (input$plotType == "Scatter Plot") {
       ggplot(imdb_data, aes(x = IMDB_Rating, y = Gross)) +
         geom_point(alpha = 0.7, color = "blue") +
         geom_smooth(method = "lm", color = "red") +
         labs(title = "Relationship Between IMDb Scores and Revenue",
              x = "IMDb Rating", y = "Revenue") +
+        theme_minimal()
+      
+    } else if (input$plotType == "Correlation Plot") {
+      ggplot(imdb_data, aes(x = IMDB_Rating, y = Meta_score)) +
+        geom_point(alpha = 0.7, color = "green") +
+        geom_smooth(method = "lm", color = "red") +
+        labs(title = "Correlation Between IMDb Scores and Meta Scores",
+             x = "IMDb Rating", y = "Meta Score") +
         theme_minimal()
     }
   })
