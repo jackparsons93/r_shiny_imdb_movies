@@ -175,17 +175,17 @@ ui <- fluidPage(
              )
            )
   ),
-  tabPanel("Top 25 Movies",
+  tabPanel("Top Movies",
            sidebarLayout(
              sidebarPanel(
-               selectInput("top25Criterion", "Select Criterion:", 
+               selectInput("top25Criterion", "Select Criterion:",
                            choices = c("Gross", "IMDb Rating", "Meta Score")),
-               helpText("This tab shows the top 25 movies based on the selected criterion.")
+               sliderInput("numTopMovies", "Number of Top Movies:", 
+                           min = 1, max = 50, value = 25)
              ),
              mainPanel(
                plotOutput("top25MoviesBarChart"),
-               uiOutput("top25MoviesText"),
-               tags$style("#top25MoviesText {font-size: 16px; font-weight: bold;}")
+               uiOutput("top25MoviesText")
              )
            )
   ),
@@ -554,37 +554,38 @@ server <- function(input, output,session) {
     ggplotly(p, tooltip = "text")
   })
 
-top_25_movies <- reactive({
-  criterion <- switch(input$top25Criterion,
-                      "Gross" = "Gross",
-                      "IMDb Rating" = "IMDB_Rating",
-                      "Meta Score" = "Meta_score")
+  # Reactive expression to get the top movies based on selected criterion
+  top_25_movies <- reactive({
+    criterion <- switch(input$top25Criterion,
+                        "Gross" = "Gross",
+                        "IMDb Rating" = "IMDB_Rating",
+                        "Meta Score" = "Meta_score")
+    
+    imdb_data %>%
+      filter(!is.na(.data[[criterion]])) %>%
+      arrange(desc(.data[[criterion]])) %>%
+      slice(1:input$numTopMovies) %>%
+      select(Series_Title, !!sym(criterion)) %>%
+      rename(Value = !!sym(criterion))
+  })
   
-  imdb_data %>%
-    filter(!is.na(.data[[criterion]])) %>%
-    arrange(desc(.data[[criterion]])) %>%
-    slice(1:25) %>%
-    select(Series_Title, !!sym(criterion)) %>%
-    rename(Value = !!sym(criterion))
-})
-
-output$top25MoviesBarChart <- renderPlot({
-  ggplot(top_25_movies(), aes(x = reorder(Series_Title, Value), y = Value)) +
-    geom_bar(stat = "identity", fill = "skyblue") +
-    coord_flip() +
-    labs(title = paste("Top 25 Movies by", input$top25Criterion),
-         x = "Movie Title", y = input$top25Criterion) +
-    theme_minimal()
-})
-
-output$top25MoviesText <- renderUI({
-  HTML(paste(
-    apply(top_25_movies(), 1, function(row) {
-      paste("Title:", row["Series_Title"], "-", input$top25Criterion, ":", row["Value"])
-    }),
-    collapse = "<br>"
-  ))
-})
+  output$top25MoviesBarChart <- renderPlot({
+    ggplot(top_25_movies(), aes(x = reorder(Series_Title, Value), y = Value)) +
+      geom_bar(stat = "identity", fill = "skyblue") +
+      coord_flip() +
+      labs(title = paste("Top", input$numTopMovies, "Movies by", input$top25Criterion),
+           x = "Movie Title", y = input$top25Criterion) +
+      theme_minimal()
+  })
+  
+  output$top25MoviesText <- renderUI({
+    HTML(paste(
+      apply(top_25_movies(), 1, function(row) {
+        paste("Title:", row["Series_Title"], "-", input$top25Criterion, ":", row["Value"])
+      }),
+      collapse = "<br>"
+    ))
+  })
 
 # Reactive expression to get the top directors based on selected criterion
 top_directors <- reactive({
