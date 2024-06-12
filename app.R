@@ -522,16 +522,20 @@ server <- function(input, output,session) {
   })
   # Data for bubble plot
   bubble_plot_data <- imdb_data %>%
-    filter(!is.na(Gross) & !is.na(IMDB_Rating))
+    filter(!is.na(Gross) & !is.na(IMDB_Rating) & !is.na(Genre)) %>%
+    mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross))) %>%
+    mutate(Genre = strsplit(Genre, ", ")) %>%
+    unnest(Genre)
   
   output$grossVsImdbBubblePlot <- renderPlot({
-    ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, label = Series_Title)) +
-      geom_point(alpha = 0.7, color = "skyblue") +
+    ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, color = Genre, label = Series_Title)) +
+      geom_point(alpha = 0.7) +
       scale_size_continuous(range = c(1, 10)) +
       labs(title = "Gross vs IMDb Score Bubble Plot",
            x = "IMDb Score", y = "Gross Earnings") +
       theme_minimal() +
-      theme(legend.position = "none")
+      theme(legend.position = "right") +
+      guides(color = guide_legend(title = "Genre"))
   })
 
 top_25_movies <- reactive({
