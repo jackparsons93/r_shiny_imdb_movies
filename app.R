@@ -35,7 +35,9 @@ ui <- fluidPage(
                  selectInput("genre", "Select Genre:", 
                              choices = c("All Genres", unique(imdb_data$Genre))),
                  selectInput("director", "Select Director:", 
-                             choices = unique(imdb_data$Director))
+                             choices = unique(imdb_data$Director)),
+                 selectInput("ratingCriterion", "Select Criterion:",
+                             choices = c("IMDb Rating", "Meta Score", "Gross", "Number of Votes"))
                ),
                mainPanel(
                  plotOutput("ratingPlot"),
@@ -224,19 +226,38 @@ server <- function(input, output,session) {
                                  "Star Wars: Episode VII", 
                                  Series_Title))
   
+  director_movies <- reactive({
+    criterion <- switch(input$ratingCriterion,
+                        "IMDb Rating" = "IMDB_Rating",
+                        "Meta Score" = "Meta_score",
+                        "Gross" = "Gross",
+                        "Number of Votes" = "No_of_Votes")
+    
+    data <- imdb_data %>%
+      filter(Director == input$director)
+    
+    if (input$genre != "All Genres") {
+      data <- data %>%
+        filter(str_detect(Genre, input$genre))
+    }
+    
+    data %>%
+      filter(!is.na(.data[[criterion]])) %>%
+      select(Series_Title, !!sym(criterion)) %>%
+      rename(Value = !!sym(criterion))
+  })
+  
   output$ratingPlot <- renderPlot({
-    ggplot(filtered_data(), aes(x = reorder(Series_Title, IMDB_Rating), y = IMDB_Rating)) +
-      geom_bar(stat = "identity", fill = "skyblue") +
+    ggplot(director_movies(), aes(x = reorder(Series_Title, Value), y = Value)) +
+      geom_bar(stat = "identity", fill = "lightblue") +
       coord_flip() +
-      labs(title = paste("IMDb Ratings for", input$genre, "movies directed by", input$director),
-           x = "Movie Title", y = "IMDb Rating") +
+      labs(title = paste("Movies by", input$director, "based on", input$ratingCriterion),
+           x = "Movie Title", y = input$ratingCriterion) +
       theme_minimal()
   })
   
   output$movieTable <- renderTable({
-    filtered_data() %>%
-      select(Series_Title, Released_Year, Genre, Director, IMDB_Rating, Meta_score, Gross) %>%
-      arrange(desc(IMDB_Rating))
+    director_movies()
   })
   
   # Reactive expression to get the average values by genre based on selected criterion
