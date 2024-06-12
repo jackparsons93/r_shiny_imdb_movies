@@ -190,19 +190,19 @@ ui <- fluidPage(
            )
   ),
   tabPanel("Top Directors",
-  sidebarLayout(
-    sidebarPanel(
-      selectInput("topDirectorsCriterion", "Select Criterion:",
-                  choices = c("Average Gross", "Average IMDb Score", "Average Meta Score")),
-      sliderInput("numTopDirectors", "Number of Top Directors:", 
-                  min = 1, max = 50, value = 25)
-    ),
-    mainPanel(
-      plotOutput("topDirectorsBarChart"),
-      uiOutput("topDirectorsText")
-    )
-  )
-),
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("topDirectorsCriterion", "Select Criterion:",
+                           choices = c("Average Gross", "Average IMDb Score", "Average Meta Score", "Average Votes")),
+               sliderInput("numTopDirectors", "Number of Top Directors:", 
+                           min = 1, max = 50, value = 25)
+             ),
+             mainPanel(
+               plotOutput("topDirectorsBarChart"),
+               uiOutput("topDirectorsText")
+             )
+           )
+  ),
   
   tabPanel("Bubble Plot: Year vs. Rating",
            sidebarLayout(
@@ -591,7 +591,8 @@ top_directors <- reactive({
   criterion <- switch(input$topDirectorsCriterion,
                       "Average Gross" = "Gross",
                       "Average IMDb Score" = "IMDB_Rating",
-                      "Average Meta Score" = "Meta_score")
+                      "Average Meta Score" = "Meta_score",
+                      "Average Votes" = "No_of_Votes")
   
   imdb_data %>%
     mutate(across(all_of(criterion), ~as.numeric(gsub("[^0-9.]", "", .)))) %>%
@@ -611,6 +612,16 @@ output$topDirectorsBarChart <- renderPlot({
          x = "Director", y = input$topDirectorsCriterion) +
     theme_minimal()
 })
+
+output$topDirectorsText <- renderUI({
+  HTML(paste(
+    apply(top_directors(), 1, function(row) {
+      paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
+    }),
+    collapse = "<br>"
+  ))
+})
+
 
 output$topDirectorsText <- renderUI({
   HTML(paste(
