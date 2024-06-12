@@ -91,16 +91,18 @@ ui <- fluidPage(
                )
              )
     ),
-  tabPanel("Bubble Plot: Gross vs IMDb Score",
-           sidebarLayout(
-             sidebarPanel(
-               helpText("This tab shows a bubble plot of the relationship between gross earnings and IMDb score, colored by genre.")
-             ),
-             mainPanel(
-               plotlyOutput("grossVsImdbBubblePlot")
+    tabPanel("Bubble Plots",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("bubblePlotSelect", "Select Bubble Plot:", 
+                             choices = c("Gross vs IMDb Score", "Year vs. Rating")),
+                 helpText("This tab shows bubble plots with various data relationships.")
+               ),
+               mainPanel(
+                 uiOutput("bubblePlotOutput")
+               )
              )
-           )
-  ),
+    ),
   tabPanel("Top Movies",
            sidebarLayout(
              sidebarPanel(
@@ -130,16 +132,7 @@ ui <- fluidPage(
            )
   ),
   
-  tabPanel("Bubble Plot: Year vs. Rating",
-           sidebarLayout(
-             sidebarPanel(
-               helpText("This tab shows a bubble plot with Released Year on the X-axis, IMDb Rating on the Y-axis, bubble size representing the number of votes, and bubble color representing the genre.")
-             ),
-             mainPanel(
-               plotOutput("yearRatingBubblePlot")
-             )
-           )
-  ),
+
   tabPanel("Radar Plot: Top 5 Directors",
            sidebarLayout(
              sidebarPanel(
@@ -401,7 +394,7 @@ server <- function(input, output,session) {
       wordcloud2Output("directorsWordcloud")
     }
   })
-  #data for bubble plot
+  # Data for bubble plots
   bubble_plot_data <- imdb_data %>%
     filter(!is.na(Gross) & !is.na(IMDB_Rating) & !is.na(Genre)) %>%
     mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross))) %>%
@@ -419,6 +412,30 @@ server <- function(input, output,session) {
       guides(color = guide_legend(title = "Genre"))
     
     ggplotly(p, tooltip = "text")
+  })
+  
+  bubble_plot_data_year <- imdb_data %>%
+    filter(!is.na(Released_Year) & !is.na(IMDB_Rating) & !is.na(No_of_Votes) & !is.na(Genre)) %>%
+    mutate(Genre = strsplit(Genre, ", ")) %>%
+    unnest(Genre)
+  
+  output$yearRatingBubblePlot <- renderPlot({
+    ggplot(bubble_plot_data_year, aes(x = as.numeric(Released_Year), y = IMDB_Rating, size = No_of_Votes, color = Genre, label = Series_Title)) +
+      geom_point(alpha = 0.7) +
+      scale_size_continuous(range = c(1, 15)) +
+      labs(title = "Bubble Plot: Year vs. Rating",
+           x = "Released Year", y = "IMDb Rating") +
+      theme_minimal() +
+      theme(legend.position = "right")
+  })
+  
+  # Output the selected bubble plot based on the dropdown
+  output$bubblePlotOutput <- renderUI({
+    if (input$bubblePlotSelect == "Gross vs IMDb Score") {
+      plotlyOutput("grossVsImdbBubblePlot")
+    } else {
+      plotOutput("yearRatingBubblePlot")
+    }
   })
 
   # Reactive expression to get the top movies based on selected criterion
@@ -502,21 +519,7 @@ output$topDirectorsText <- renderUI({
   ))
 })
 
-# Data for bubble plot
-bubble_plot_data <- imdb_data %>%
-  filter(!is.na(Released_Year) & !is.na(IMDB_Rating) & !is.na(No_of_Votes) & !is.na(Genre)) %>%
-  mutate(Genre = strsplit(Genre, ", ")) %>%
-  unnest(Genre)
 
-output$yearRatingBubblePlot <- renderPlot({
-  ggplot(bubble_plot_data, aes(x = as.numeric(Released_Year), y = IMDB_Rating, size = No_of_Votes, color = Genre, label = Series_Title)) +
-    geom_point(alpha = 0.7) +
-    scale_size_continuous(range = c(1, 15)) +
-    labs(title = "Bubble Plot: Year vs. Rating",
-         x = "Released Year", y = "IMDb Rating") +
-    theme_minimal() +
-    theme(legend.position = "right")
-})
 # Radar plot for top 5 directors with normalization
 top_5_directors_data <- reactive({
   imdb_data %>%
