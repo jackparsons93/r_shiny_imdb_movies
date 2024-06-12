@@ -71,23 +71,14 @@ ui <- fluidPage(
              )
     ),
     
-    tabPanel("Distribution of IMDb Ratings",
+    tabPanel("Combined Plots",
              sidebarLayout(
                sidebarPanel(
-                 helpText("This tab shows the distribution of IMDb ratings across the top 10 most frequent genres.")
+                 selectInput("plotType", "Select Plot Type:", 
+                             choices = c("Violin Plot", "Scatter Plot"))
                ),
                mainPanel(
-                 plotOutput("violinPlot")
-               )
-             )
-    ),
-    tabPanel("IMDb Score vs Revenue",
-             sidebarLayout(
-               sidebarPanel(
-                 helpText("This tab shows the relationship between IMDb scores and revenue.")
-               ),
-               mainPanel(
-                 plotOutput("scatterPlot")
+                 plotOutput("combinedPlot")
                )
              )
     ),
@@ -262,34 +253,34 @@ server <- function(input, output,session) {
     ))
   })
   
-  output$violinPlot <- renderPlot({
-    imdb_data_clean <- imdb_data %>%
-      mutate(Genre = strsplit(Genre, ", ")) %>%
-      unnest(Genre) %>%
-      filter(!is.na(IMDB_Rating)) %>%
-      count(Genre, sort = TRUE) %>%
-      top_n(10, n) %>%
-      inner_join(imdb_data %>%
-                   mutate(Genre = strsplit(Genre, ", ")) %>%
-                   unnest(Genre) %>%
-                   filter(!is.na(IMDB_Rating)), by = "Genre") 
-    
-    ggplot(imdb_data_clean, aes(x = Genre, y = IMDB_Rating)) +
-      geom_violin(trim = FALSE, fill = "skyblue", alpha = 0.7) +
-      geom_boxplot(width = 0.1, fill = "white") +
-      coord_flip() +
-      labs(title = "Distribution of IMDb Ratings Across Top 10 Most Frequent Genres",
-           x = "Genre", y = "IMDb Rating") +
-      theme_minimal()
-  })
-  
-  output$scatterPlot <- renderPlot({
-    ggplot(imdb_data, aes(x = IMDB_Rating, y = Gross)) +
-      geom_point(alpha = 0.7, color = "blue") +
-      geom_smooth(method = "lm", color = "red") +
-      labs(title = "Relationship Between IMDb Scores and Revenue",
-           x = "IMDb Rating", y = "Revenue") +
-      theme_minimal()
+  output$combinedPlot <- renderPlot({
+    if (input$plotType == "Violin Plot") {
+      imdb_data_clean <- imdb_data %>%
+        mutate(Genre = strsplit(Genre, ", ")) %>%
+        unnest(Genre) %>%
+        filter(!is.na(IMDB_Rating)) %>%
+        count(Genre, sort = TRUE) %>%
+        top_n(10, n) %>%
+        inner_join(imdb_data %>%
+                     mutate(Genre = strsplit(Genre, ", ")) %>%
+                     unnest(Genre) %>%
+                     filter(!is.na(IMDB_Rating)), by = "Genre") 
+      
+      ggplot(imdb_data_clean, aes(x = Genre, y = IMDB_Rating)) +
+        geom_violin(trim = FALSE, fill = "skyblue", alpha = 0.7) +
+        geom_boxplot(width = 0.1, fill = "white") +
+        coord_flip() +
+        labs(title = "Distribution of IMDb Ratings Across Top 10 Most Frequent Genres",
+             x = "Genre", y = "IMDb Rating") +
+        theme_minimal()
+    } else if (input$plotType == "Scatter Plot") {
+      ggplot(imdb_data, aes(x = IMDB_Rating, y = Gross)) +
+        geom_point(alpha = 0.7, color = "blue") +
+        geom_smooth(method = "lm", color = "red") +
+        labs(title = "Relationship Between IMDb Scores and Revenue",
+             x = "IMDb Rating", y = "Revenue") +
+        theme_minimal()
+    }
   })
   # Wordcloud for top grossing films
   top_grossing_films <- imdb_data %>%
