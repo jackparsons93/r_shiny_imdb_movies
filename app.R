@@ -7,6 +7,7 @@ library(tidyr)
 library(wordcloud2)
 library(shinyjs)
 library(fmsb)
+library(plotly)
 # Load the dataset
 file_path <- "imdb_top_1000.csv"  # Path to the dataset in the working directory
 
@@ -164,16 +165,16 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Gross vs IMDb Score Bubble Plot",
-             sidebarLayout(
-               sidebarPanel(
-                 helpText("This tab shows a bubble plot of the relationship between gross earnings and IMDb score.")
-               ),
-               mainPanel(
-                 plotOutput("grossVsImdbBubblePlot")
-               )
+  tabPanel("Bubble Plot: Gross vs IMDb Score",
+           sidebarLayout(
+             sidebarPanel(
+               helpText("This tab shows a bubble plot of the relationship between gross earnings and IMDb score, colored by genre.")
+             ),
+             mainPanel(
+               plotlyOutput("grossVsImdbBubblePlot")
              )
-    ),
+           )
+  ),
   tabPanel("Top 25 Movies",
            sidebarLayout(
              sidebarPanel(
@@ -520,15 +521,15 @@ server <- function(input, output,session) {
       paste("Director:", selected_director, "- Average IMDb Rating:", round(selected_avg_rating, 2))
     })
   })
-  # Data for bubble plot
+  #data for bubble plot
   bubble_plot_data <- imdb_data %>%
     filter(!is.na(Gross) & !is.na(IMDB_Rating) & !is.na(Genre)) %>%
     mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross))) %>%
     mutate(Genre = strsplit(Genre, ", ")) %>%
     unnest(Genre)
   
-  output$grossVsImdbBubblePlot <- renderPlot({
-    ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, color = Genre, label = Series_Title)) +
+  output$grossVsImdbBubblePlot <- renderPlotly({
+    p <- ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, color = Genre, text = paste("Title:", Series_Title, "<br>Genre:", Genre))) +
       geom_point(alpha = 0.7) +
       scale_size_continuous(range = c(1, 10)) +
       labs(title = "Gross vs IMDb Score Bubble Plot",
@@ -536,6 +537,8 @@ server <- function(input, output,session) {
       theme_minimal() +
       theme(legend.position = "right") +
       guides(color = guide_legend(title = "Genre"))
+    
+    ggplotly(p, tooltip = "text")
   })
 
 top_25_movies <- reactive({
