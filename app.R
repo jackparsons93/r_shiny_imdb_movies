@@ -132,19 +132,20 @@ ui <- fluidPage(
              )
            )
   ),
-  
-  tabPanel("Star Wars Movies",
+  tabPanel("Franchise Analysis",
            sidebarLayout(
              sidebarPanel(
-               selectInput("starWarsMetric", "Select Metric:", 
-                           choices = c("IMDb Rating", "Meta Score", "Gross Earnings")),
-               helpText("This tab shows the average IMDb ratings, metascores, and gross earnings of all Star Wars movies.")
+               selectInput("franchise", "Select Franchise:", 
+                           choices = c("Star Wars", "Lord of the Rings", "Harry Potter")),
+               selectInput("franchiseMetric", "Select Metric:",
+                           choices = c("IMDb Rating", "Meta Score", "Gross Earnings"))
              ),
              mainPanel(
-               plotOutput("starWarsPlot")
+               plotOutput("franchisePlot")
              )
            )
   )
+  
     
 
   )
@@ -530,29 +531,35 @@ top_5_directors_data <- reactive({
     )
 })
 
-# Data for Star Wars movies
-  star_wars_data <- reactive({
-    imdb_data %>%
-      filter(grepl("Star Wars", Series_Title, ignore.case = TRUE)) %>%
-      mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross)),
-             Meta_score = as.numeric(Meta_score))
-  })
+# Data for franchise analysis
+franchise_data <- reactive({
+  franchise <- input$franchise
+  filter_expr <- switch(franchise,
+                        "Star Wars" = grepl("Star Wars", imdb_data$Series_Title, ignore.case = TRUE),
+                        "Lord of the Rings" = grepl("Lord of the Rings", imdb_data$Series_Title, ignore.case = TRUE),
+                        "Harry Potter" = grepl("Harry Potter", imdb_data$Series_Title, ignore.case = TRUE))
   
-  output$starWarsPlot <- renderPlot({
-    data <- star_wars_data()
-    metric <- switch(input$starWarsMetric,
-                     "IMDb Rating" = data$IMDB_Rating,
-                     "Meta Score" = data$Meta_score,
-                     "Gross Earnings" = data$Gross)
-    
-    ggplot(data, aes(x = reorder(Series_Title, metric), y = metric, fill = Series_Title)) +
-      geom_bar(stat = "identity") +
-      coord_flip() +
-      labs(title = paste(input$starWarsMetric, "of Star Wars Movies"),
-           x = "Movie Title", y = input$starWarsMetric) +
-      theme_minimal() +
-      theme(legend.position = "none")
-  })
+  imdb_data %>%
+    filter(filter_expr) %>%
+    mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross)),
+           Meta_score = as.numeric(Meta_score))
+})
+
+output$franchisePlot <- renderPlot({
+  data <- franchise_data()
+  metric <- switch(input$franchiseMetric,
+                   "IMDb Rating" = data$IMDB_Rating,
+                   "Meta Score" = data$Meta_score,
+                   "Gross Earnings" = data$Gross)
+  
+  ggplot(data, aes(x = reorder(Series_Title, metric), y = metric, fill = Series_Title)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = paste(input$franchiseMetric, "of", input$franchise, "Movies"),
+         x = "Movie Title", y = input$franchiseMetric) +
+    theme_minimal() +
+    theme(legend.position = "none")
+})
 }
 
   
