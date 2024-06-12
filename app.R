@@ -179,7 +179,7 @@ ui <- fluidPage(
            sidebarLayout(
              sidebarPanel(
                selectInput("top25Criterion", "Select Criterion:",
-                           choices = c("Gross", "IMDb Rating", "Meta Score")),
+                           choices = c("Gross", "IMDb Rating", "Meta Score", "Number of Votes")),
                sliderInput("numTopMovies", "Number of Top Movies:", 
                            min = 1, max = 50, value = 25)
              ),
@@ -559,7 +559,8 @@ server <- function(input, output,session) {
     criterion <- switch(input$top25Criterion,
                         "Gross" = "Gross",
                         "IMDb Rating" = "IMDB_Rating",
-                        "Meta Score" = "Meta_score")
+                        "Meta Score" = "Meta_score",
+                        "Number of Votes" = "No_of_Votes")
     
     imdb_data %>%
       filter(!is.na(.data[[criterion]])) %>%
@@ -586,6 +587,7 @@ server <- function(input, output,session) {
       collapse = "<br>"
     ))
   })
+  
 
 # Reactive expression to get the top directors based on selected criterion
 top_directors <- reactive({
