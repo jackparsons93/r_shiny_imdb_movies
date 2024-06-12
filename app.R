@@ -29,6 +29,18 @@ ui <- fluidPage(
   titlePanel("IMDb Top 1000 Movies Explorer"),
   
   tabsetPanel(
+    tabPanel("Wordclouds",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("wordcloudSelect", "Select Wordcloud:", 
+                             choices = c("Top Grossing Films", "Top Directors by IMDb Rating"))
+               ),
+               mainPanel(
+                 uiOutput("wordcloudOutput"),
+                 textOutput("selectedItem")
+               )
+             )
+    ),
     tabPanel("Director Viewer",
              sidebarLayout(
                sidebarPanel(
@@ -79,18 +91,7 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Wordclouds",
-             sidebarLayout(
-               sidebarPanel(
-                 selectInput("wordcloudSelect", "Select Wordcloud:", 
-                             choices = c("Top Grossing Films", "Top Directors by IMDb Rating"))
-               ),
-               mainPanel(
-                 uiOutput("wordcloudOutput"),
-                 textOutput("selectedItem")
-               )
-             )
-    ),
+
     tabPanel("Bubble Plots",
              sidebarLayout(
                sidebarPanel(
