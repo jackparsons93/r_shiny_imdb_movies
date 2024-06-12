@@ -36,6 +36,8 @@ ui <- fluidPage(
                              choices = c("All Genres", unique(imdb_data$Genre))),
                  selectInput("director", "Select Director:", 
                              choices = unique(imdb_data$Director)),
+                 radioButtons("specialDirectors", "Select Special Director:",
+                              choices = c("None", "Steven Spielberg", "Darren Aronofsky")),
                  selectInput("ratingCriterion", "Select Criterion:",
                              choices = c("IMDb Rating", "Meta Score", "Gross", "Number of Votes"))
                ),
@@ -226,6 +228,7 @@ server <- function(input, output,session) {
                                  "Star Wars: Episode VII", 
                                  Series_Title))
   
+  # Reactive expression to get movies by selected director and criterion
   director_movies <- reactive({
     criterion <- switch(input$ratingCriterion,
                         "IMDb Rating" = "IMDB_Rating",
@@ -233,8 +236,13 @@ server <- function(input, output,session) {
                         "Gross" = "Gross",
                         "Number of Votes" = "No_of_Votes")
     
-    data <- imdb_data %>%
-      filter(Director == input$director)
+    if (input$specialDirectors == "None") {
+      data <- imdb_data %>%
+        filter(Director == input$director)
+    } else {
+      data <- imdb_data %>%
+        filter(Director == input$specialDirectors)
+    }
     
     if (input$genre != "All Genres") {
       data <- data %>%
@@ -251,7 +259,7 @@ server <- function(input, output,session) {
     ggplot(director_movies(), aes(x = reorder(Series_Title, Value), y = Value)) +
       geom_bar(stat = "identity", fill = "lightblue") +
       coord_flip() +
-      labs(title = paste("Movies by", input$director, "based on", input$ratingCriterion),
+      labs(title = paste("Movies by", if (input$specialDirectors == "None") input$director else input$specialDirectors, "based on", input$ratingCriterion),
            x = "Movie Title", y = input$ratingCriterion) +
       theme_minimal()
   })
