@@ -222,6 +222,18 @@ ui <- fluidPage(
                plotOutput("radarPlot", width = "800px", height = "800px")
              )
            )
+  ),
+  tabPanel("Star Wars Movies",
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("starWarsMetric", "Select Metric:", 
+                           choices = c("IMDb Rating", "Meta Score", "Gross Earnings")),
+               helpText("This tab shows the average IMDb ratings, metascores, and gross earnings of all Star Wars movies.")
+             ),
+             mainPanel(
+               plotOutput("starWarsPlot")
+             )
+           )
   )
     
 
@@ -659,6 +671,29 @@ output$radarPlot <- renderPlot({
              vlcex = 0.8)
   legend(x = "topright", legend = directors, col = colors, lty = 1, lwd = 2)
 })
+# Data for Star Wars movies
+  star_wars_data <- reactive({
+    imdb_data %>%
+      filter(grepl("Star Wars", Series_Title, ignore.case = TRUE)) %>%
+      mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross)),
+             Meta_score = as.numeric(Meta_score))
+  })
+  
+  output$starWarsPlot <- renderPlot({
+    data <- star_wars_data()
+    metric <- switch(input$starWarsMetric,
+                     "IMDb Rating" = data$IMDB_Rating,
+                     "Meta Score" = data$Meta_score,
+                     "Gross Earnings" = data$Gross)
+    
+    ggplot(data, aes(x = reorder(Series_Title, metric), y = metric, fill = Series_Title)) +
+      geom_bar(stat = "identity") +
+      coord_flip() +
+      labs(title = paste(input$starWarsMetric, "of Star Wars Movies"),
+           x = "Movie Title", y = input$starWarsMetric) +
+      theme_minimal() +
+      theme(legend.position = "none")
+  })
 }
 
   
