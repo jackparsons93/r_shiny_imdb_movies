@@ -79,27 +79,15 @@ ui <- fluidPage(
                )
              )
     ),
-    tabPanel("Top Grossing Films Word Cloud",
+    tabPanel("Wordclouds",
              sidebarLayout(
                sidebarPanel(
-                 helpText("This tab shows a word cloud made up of the titles of the top grossing films.")
+                 selectInput("wordcloudSelect", "Select Wordcloud:", 
+                             choices = c("Top Grossing Films", "Top Directors by IMDb Rating"))
                ),
                mainPanel(
-                 wordcloud2Output("wordcloudPlot"),
-                 textOutput("selectedMovie"),
-                 tags$style("#selectedMovie {font-size: 24px; font-weight: bold;}")
-               )
-             )
-    ),
-    tabPanel("Directors' Average IMDb Ratings Word Cloud",
-             sidebarLayout(
-               sidebarPanel(
-                 helpText("This tab shows a word cloud made up of directors' names, with size based on their average IMDb rating.")
-               ),
-               mainPanel(
-                 wordcloud2Output("directorsWordcloud"),
-                 textOutput("selectedDirector"),
-                 tags$style("#selectedDirector {font-size: 24px; font-weight: bold;}")
+                 uiOutput("wordcloudOutput"),
+                 textOutput("selectedItem")
                )
              )
     ),
@@ -319,6 +307,7 @@ server <- function(input, output,session) {
            x = "IMDb Rating", y = "Revenue") +
       theme_minimal()
   })
+  # Wordcloud for top grossing films
   top_grossing_films <- imdb_data %>%
     filter(!is.na(Gross)) %>%
     arrange(desc(Gross)) %>%
@@ -345,7 +334,7 @@ server <- function(input, output,session) {
       ")
   })
   
-  output$selectedMovie <- renderText({
+  output$selectedItem <- renderText({
     paste("Hover on a movie title in the word cloud to see its gross earnings.")
   })
   
@@ -355,11 +344,12 @@ server <- function(input, output,session) {
       filter(Series_Title == selected_word) %>%
       pull(Gross)
     
-    output$selectedMovie <- renderText({
+    output$selectedItem <- renderText({
       paste("Title:", selected_word, "- Gross Earnings: $", format(selected_gross, big.mark = ","))
     })
   })
-  # Compute average IMDb rating for each director
+  
+  # Wordcloud for top directors by IMDb rating
   director_avg_rating <- imdb_data %>%
     filter(!is.na(IMDB_Rating)) %>%
     group_by(Director) %>%
@@ -392,19 +382,24 @@ server <- function(input, output,session) {
       ")
   })
   
-  output$selectedDirector <- renderText({
-    paste("Directors Name Size Average IMDB Rating")
-  })
-  
   observeEvent(input$directorsWordcloud_click, {
     selected_director <- input$directorsWordcloud_click
     selected_avg_rating <- director_avg_rating %>%
       filter(Director == selected_director) %>%
       pull(avg_rating)
     
-    output$selectedDirector <- renderText({
+    output$selectedItem <- renderText({
       paste("Director:", selected_director, "- Average IMDb Rating:", round(selected_avg_rating, 2))
     })
+  })
+  
+  # Output the selected wordcloud based on the dropdown
+  output$wordcloudOutput <- renderUI({
+    if (input$wordcloudSelect == "Top Grossing Films") {
+      wordcloud2Output("wordcloudPlot")
+    } else {
+      wordcloud2Output("directorsWordcloud")
+    }
   })
   #data for bubble plot
   bubble_plot_data <- imdb_data %>%
