@@ -145,7 +145,8 @@ ui <- fluidPage(
                            min = 1, max = 50, value = 25)
              ),
              mainPanel(
-               plotOutput("actorPlot")
+               plotOutput("actorPlot"),
+               tableOutput("actorTable")
              )
            )
   )
@@ -573,14 +574,15 @@ output$franchisePlot <- renderPlot({
     theme_minimal() +
     theme(legend.position = "none")
 })
-output$actorPlot <- renderPlot({
+
+actor_data <- reactive({
   metric <- switch(input$actorMetric,
                    "Average Gross" = "Gross",
                    "Average Meta Score" = "Meta_score",
                    "Average IMDb Score" = "IMDB_Rating",
                    "Number of Votes" = "No_of_Votes")
   
-  actor_data <- imdb_data %>%
+  imdb_data %>%
     select(contains("Star"), Gross, Meta_score, IMDB_Rating, No_of_Votes) %>%
     gather(key = "Star", value = "Actor", contains("Star")) %>%
     filter(!is.na(Actor) & !is.na(.data[[metric]])) %>%
@@ -588,14 +590,24 @@ output$actorPlot <- renderPlot({
     summarize(Average_Value = mean(.data[[metric]], na.rm = TRUE)) %>%
     arrange(desc(Average_Value)) %>%
     slice(1:input$numActors)
+})
+
+output$actorPlot <- renderPlot({
+  data <- actor_data()
   
-  ggplot(actor_data, aes(x = reorder(Actor, Average_Value), y = Average_Value, fill = Actor)) +
+  ggplot(data, aes(x = reorder(Actor, Average_Value), y = Average_Value, fill = Actor)) +
     geom_bar(stat = "identity") +
     coord_flip() +
     labs(title = paste(input$actorMetric, "by Actor"),
          x = "Actor", y = input$actorMetric) +
     theme_minimal() +
     theme(legend.position = "none")
+})
+
+output$actorTable <- renderTable({
+  actor_data() %>%
+    arrange(desc(Average_Value)) %>%
+    select(Actor, Average_Value)
 })
 }
 
