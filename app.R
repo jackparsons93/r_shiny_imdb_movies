@@ -141,20 +141,7 @@ ui <- fluidPage(
              )
            )
   ),
-  tabPanel("Franchise Analysis",
-           sidebarLayout(
-             sidebarPanel(
-               selectInput("franchise", "Select Franchise:", 
-                           choices = c("Star Wars", "Lord of the Rings", "Harry Potter")),
-               selectInput("franchiseMetric", "Select Metric:",
-                           choices = c("IMDb Rating", "Meta Score", "Gross Earnings"))
-             ),
-             mainPanel(
-               plotOutput("franchisePlot")
-             )
-           )
-  ),
-  tabPanel("Actor Analysis",
+  tabPanel("Top Actors",
            sidebarLayout(
              sidebarPanel(
                selectInput("actorMetric", "Select Metric:",
@@ -167,7 +154,21 @@ ui <- fluidPage(
                tableOutput("actorTable")
              )
            )
+  ),
+  tabPanel("Franchise Analysis",
+           sidebarLayout(
+             sidebarPanel(
+               selectInput("franchise", "Select Franchise:", 
+                           choices = c("Star Wars", "Lord of the Rings", "Harry Potter")),
+               selectInput("franchiseMetric", "Select Metric:",
+                           choices = c("IMDb Rating", "Meta Score", "Gross Earnings"))
+             ),
+             mainPanel(
+               plotOutput("franchisePlot")
+             )
+           )
   )
+
   
   
     
