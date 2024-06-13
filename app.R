@@ -587,25 +587,6 @@ output$combinedPlot <- renderPlot({
     ))
   })
 
-# Radar plot for top 5 directors with normalization
-top_5_directors_data <- reactive({
-  imdb_data %>%
-    filter(!is.na(Gross) & !is.na(IMDB_Rating) & !is.na(Meta_score)) %>%
-    mutate(Gross = as.numeric(gsub("[^0-9.]", "", Gross))) %>%
-    group_by(Director) %>%
-    summarize(
-      avg_gross = mean(Gross, na.rm = TRUE),
-      avg_imdb = mean(IMDB_Rating, na.rm = TRUE),
-      avg_meta = mean(Meta_score, na.rm = TRUE)
-    ) %>%
-    arrange(desc(avg_imdb)) %>%
-    slice(1:5) %>%
-    mutate(
-      avg_gross = (avg_gross - min(avg_gross)) / (max(avg_gross) - min(avg_gross)),
-      avg_imdb = (avg_imdb - min(avg_imdb)) / (max(avg_imdb) - min(avg_imdb)),
-      avg_meta = (avg_meta - min(avg_meta)) / (max(avg_meta) - min(avg_meta))
-    )
-})
 
 # Data for franchise analysis
 franchise_data <- reactive({
