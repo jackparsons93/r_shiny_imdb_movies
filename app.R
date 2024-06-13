@@ -140,7 +140,7 @@ ui <- fluidPage(
            sidebarLayout(
              sidebarPanel(
                selectInput("actorMetric", "Select Metric:",
-                           choices = c("Average Gross", "Average Meta Score", "Average IMDb Score", "Number of Votes")),
+                           choices = c("Average Gross", "Net Gross", "Average Meta Score", "Average IMDb Score", "Number of Votes")),
                sliderInput("numActors", "Number of Actors to Display:", 
                            min = 1, max = 50, value = 25)
              ),
@@ -150,6 +150,7 @@ ui <- fluidPage(
              )
            )
   )
+  
   
     
 
@@ -578,18 +579,31 @@ output$franchisePlot <- renderPlot({
 actor_data <- reactive({
   metric <- switch(input$actorMetric,
                    "Average Gross" = "Gross",
+                   "Net Gross" = "Gross",
                    "Average Meta Score" = "Meta_score",
                    "Average IMDb Score" = "IMDB_Rating",
                    "Number of Votes" = "No_of_Votes")
   
-  imdb_data %>%
-    select(contains("Star"), Gross, Meta_score, IMDB_Rating, No_of_Votes) %>%
-    gather(key = "Star", value = "Actor", contains("Star")) %>%
-    filter(!is.na(Actor) & !is.na(.data[[metric]])) %>%
-    group_by(Actor) %>%
-    summarize(Average_Value = mean(.data[[metric]], na.rm = TRUE)) %>%
-    arrange(desc(Average_Value)) %>%
-    slice(1:input$numActors)
+  if (input$actorMetric == "Net Gross") {
+    imdb_data %>%
+      select(contains("Star"), Gross) %>%
+      gather(key = "Star", value = "Actor", contains("Star")) %>%
+      filter(!is.na(Actor) & !is.na(Gross)) %>%
+      group_by(Actor) %>%
+      summarize(Total_Gross = sum(as.numeric(Gross), na.rm = TRUE)) %>%
+      arrange(desc(Total_Gross)) %>%
+      slice(1:input$numActors) %>%
+      rename(Average_Value = Total_Gross)
+  } else {
+    imdb_data %>%
+      select(contains("Star"), Gross, Meta_score, IMDB_Rating, No_of_Votes) %>%
+      gather(key = "Star", value = "Actor", contains("Star")) %>%
+      filter(!is.na(Actor) & !is.na(.data[[metric]])) %>%
+      group_by(Actor) %>%
+      summarize(Average_Value = mean(as.numeric(.data[[metric]]), na.rm = TRUE)) %>%
+      arrange(desc(Average_Value)) %>%
+      slice(1:input$numActors)
+  }
 })
 
 output$actorPlot <- renderPlot({
