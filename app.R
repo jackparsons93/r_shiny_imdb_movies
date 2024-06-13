@@ -59,6 +59,24 @@ ui <- fluidPage(
                )
              )
     ),
+    tabPanel("Actor Viewer",
+             sidebarLayout(
+               sidebarPanel(
+                 selectInput("genreActor", "Select Genre:", 
+                             choices = c("All Genres", unique(imdb_data$Genre))),
+                 selectInput("actor", "Select Actor:", 
+                             choices = unique(c(imdb_data$Star1, imdb_data$Star2, imdb_data$Star3, imdb_data$Star4))),
+                 radioButtons("specialActors", "Select Special Actor:",
+                              choices = c("None", "Leonardo DiCaprio", "Meryl Streep", "Tom Cruise")),
+                 selectInput("ratingCriterionActor", "Select Criterion:",
+                             choices = c("IMDb Rating", "Meta Score", "Gross", "Number of Votes"))
+               ),
+               mainPanel(
+                 plotOutput("actorRatingPlot"),
+                 tableOutput("actorMovieTable")
+               )
+             )
+    ),
     tabPanel("Genre Analysis",
              sidebarLayout(
                sidebarPanel(
@@ -215,6 +233,47 @@ server <- function(input, output,session) {
   
   output$movieTable <- renderTable({
     director_movies()
+  })
+  actor_movies <- reactive({
+    criterion <- switch(input$ratingCriterionActor,
+                        "IMDb Rating" = "IMDB_Rating",
+                        "Meta Score" = "Meta_score",
+                        "Gross" = "Gross",
+                        "Number of Votes" = "No_of_Votes")
+    
+    if (input$specialActors == "None") {
+      data <- imdb_data %>%
+        filter(Star1 == input$actor | Star2 == input$actor | Star3 == input$actor | Star4 == input$actor)
+    } else {
+      data <- imdb_data %>%
+        filter(Star1 == input$specialActors | Star2 == input$specialActors | Star3 == input$specialActors | Star4 == input$specialActors)
+    }
+    
+    if (input$genreActor != "All Genres") {
+      data <- data %>%
+        filter(str_detect(Genre, input$genreActor))
+    }
+    
+    data %>%
+      filter(!is.na(.data[[criterion]])) %>%
+      select(Series_Title, !!sym(criterion)) %>%
+      rename(Value = !!sym(criterion))
+  })
+  
+  output$actorRatingPlot <- renderPlot({
+    data <- actor_movies()
+    
+    ggplot(data, aes(x = reorder(Series_Title, Value), y = Value, fill = Series_Title)) +
+      geom_bar(stat = "identity") +
+      coord_flip() +
+      labs(title = paste(input$ratingCriterionActor, "of Movies with", if (input$specialActors == "None") input$actor else input$specialActors),
+           x = "Movie Title", y = input$ratingCriterionActor) +
+      theme_minimal() +
+      theme(legend.position = "none")
+  })
+  
+  output$actorMovieTable <- renderTable({
+    actor_movies()
   })
   
   # Reactive expression to get the average values by genre based on selected criterion
