@@ -325,6 +325,8 @@ server <- function(input, output,session) {
   })
   
   output$grossVsImdbBubblePlot <- renderPlotly({
+    max_gross <- max(bubble_plot_data$Gross, na.rm = TRUE)
+    
     p <- ggplot(bubble_plot_data, aes(x = IMDB_Rating, y = Gross, size = Gross, color = Genre, text = paste("Title:", Series_Title, "<br>Genre:", Genre))) +
       geom_point(alpha = 0.7) +
       scale_size_continuous(range = c(1, 10)) +
@@ -332,10 +334,13 @@ server <- function(input, output,session) {
            x = "IMDb Score", y = "Gross Earnings") +
       theme_minimal() +
       theme(legend.position = "right") +
-      guides(color = guide_legend(title = "Genre"))
+      guides(color = guide_legend(title = "Genre")) +
+      ylim(0, max_gross * 1.1)  # Extend the y-axis limits to ensure bubbles are not cut off
     
-    ggplotly(p, tooltip = "text")
+    ggplotly(p, tooltip = "text") %>%
+      layout(margin = list(t = 80))  # Increase top margin
   })
+  
   
   output$yearRatingBubblePlot <- renderPlot({
     ggplot(bubble_plot_data_year, aes(x = as.numeric(Released_Year), y = IMDB_Rating, size = No_of_Votes, color = Genre, label = Series_Title)) +
