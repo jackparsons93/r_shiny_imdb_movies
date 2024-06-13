@@ -113,7 +113,7 @@ ui <- fluidPage(
            sidebarLayout(
              sidebarPanel(
                selectInput("topDirectorsCriterion", "Select Criterion:",
-                           choices = c("Average Gross", "Average IMDb Score", "Average Meta Score", "Average Votes")),
+                           choices = c("Average Gross", "Net Gross", "Average IMDb Score", "Average Meta Score", "Average Votes")),
                sliderInput("numTopDirectors", "Number of Top Directors:", 
                            min = 1, max = 50, value = 25)
              ),
@@ -480,51 +480,53 @@ output$combinedPlot <- renderPlot({
   
 
 # Reactive expression to get the top directors based on selected criterion
-top_directors <- reactive({
-  criterion <- switch(input$topDirectorsCriterion,
-                      "Average Gross" = "Gross",
-                      "Average IMDb Score" = "IMDB_Rating",
-                      "Average Meta Score" = "Meta_score",
-                      "Average Votes" = "No_of_Votes")
+  top_directors <- reactive({
+    criterion <- switch(input$topDirectorsCriterion,
+                        "Average Gross" = "Gross",
+                        "Net Gross" = "Gross",
+                        "Average IMDb Score" = "IMDB_Rating",
+                        "Average Meta Score" = "Meta_score",
+                        "Average Votes" = "No_of_Votes")
+    
+    if (input$topDirectorsCriterion == "Net Gross") {
+      imdb_data %>%
+        filter(!is.na(Gross)) %>%
+        group_by(Director) %>%
+        summarize(Total_Gross = sum(as.numeric(Gross), na.rm = TRUE)) %>%
+        arrange(desc(Total_Gross)) %>%
+        slice(1:input$numTopDirectors) %>%
+        rename(Average_Value = Total_Gross)
+    } else {
+      imdb_data %>%
+        filter(!is.na(.data[[criterion]])) %>%
+        group_by(Director) %>%
+        summarize(Average_Value = mean(as.numeric(.data[[criterion]]), na.rm = TRUE)) %>%
+        arrange(desc(Average_Value)) %>%
+        slice(1:input$numTopDirectors)
+    }
+  })
   
-  imdb_data %>%
-    mutate(across(all_of(criterion), ~as.numeric(gsub("[^0-9.]", "", .)))) %>%
-    filter(!is.na(.data[[criterion]])) %>%
-    group_by(Director) %>%
-    summarize(Average_Value = mean(.data[[criterion]], na.rm = TRUE)) %>%
-    arrange(desc(Average_Value)) %>%
-    slice(1:input$numTopDirectors) %>%
-    select(Director, Average_Value)
-})
-
-output$topDirectorsBarChart <- renderPlot({
-  ggplot(top_directors(), aes(x = reorder(Director, Average_Value), y = Average_Value)) +
-    geom_bar(stat = "identity", fill = "skyblue") +
-    coord_flip() +
-    labs(title = paste("Top Directors by", input$topDirectorsCriterion),
-         x = "Director", y = input$topDirectorsCriterion) +
-    theme_minimal()
-})
-
-output$topDirectorsText <- renderUI({
-  HTML(paste(
-    apply(top_directors(), 1, function(row) {
-      paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
-    }),
-    collapse = "<br>"
-  ))
-})
-
-
-output$topDirectorsText <- renderUI({
-  HTML(paste(
-    apply(top_directors(), 1, function(row) {
-      paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", round(as.numeric(row["Average_Value"]), 2))
-    }),
-    collapse = "<br>"
-  ))
-})
-
+  output$topDirectorsBarChart <- renderPlot({
+    data <- top_directors()
+    
+    ggplot(data, aes(x = reorder(Director, Average_Value), y = Average_Value, fill = Director)) +
+      geom_bar(stat = "identity") +
+      coord_flip() +
+      labs(title = paste(input$topDirectorsCriterion, "by Director"),
+           x = "Director", y = input$topDirectorsCriterion) +
+      theme_minimal() +
+      theme(legend.position = "none")
+  })
+  
+  output$topDirectorsText <- renderUI({
+    data <- top_directors()
+    HTML(paste(
+      apply(data, 1, function(row) {
+        paste("Director:", row["Director"], "-", input$topDirectorsCriterion, ":", format(as.numeric(row["Average_Value"]), big.mark = ","))
+      }),
+      collapse = "<br>"
+    ))
+  })
 
 # Radar plot for top 5 directors with normalization
 top_5_directors_data <- reactive({
