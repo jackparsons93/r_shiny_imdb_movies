@@ -44,8 +44,7 @@ ui <- fluidPage(
     tabPanel("Director Viewer",
              sidebarLayout(
                sidebarPanel(
-                 selectInput("genre", "Select Genre:", 
-                             choices = c("All Genres", unique(imdb_data$Genre))),
+                 
                  selectInput("director", "Select Director:", 
                              choices = unique(imdb_data$Director)),
                  radioButtons("specialDirectors", "Select Special Director:",
@@ -198,11 +197,6 @@ server <- function(input, output,session) {
     } else {
       data <- imdb_data %>%
         filter(Director == input$specialDirectors)
-    }
-    
-    if (input$genre != "All Genres") {
-      data <- data %>%
-        filter(str_detect(Genre, input$genre))
     }
     
     data %>%
