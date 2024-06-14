@@ -375,7 +375,7 @@ server <- function(input, output,session) {
     ))
   })
   
-output$combinedPlot <- renderPlot({
+  output$combinedPlot <- renderPlot({
     if (input$plotType == "Violin Plot") {
       imdb_data_clean <- imdb_data %>%
         mutate(Genre = strsplit(Genre, ", ")) %>%
@@ -397,18 +397,22 @@ output$combinedPlot <- renderPlot({
         theme_minimal()
       
     } else if (input$plotType == "Scatter Plot") {
+      scatter_corr <- cor(imdb_data$IMDB_Rating, imdb_data$Gross, use = "complete.obs")
+      
       ggplot(imdb_data, aes(x = IMDB_Rating, y = Gross)) +
         geom_point(alpha = 0.7, color = "blue") +
         geom_smooth(method = "lm", color = "red") +
-        labs(title = "Relationship Between IMDb Scores and Revenue",
+        labs(title = paste("Relationship Between IMDb Scores and Revenue\nPearson correlation:", round(scatter_corr, 2)),
              x = "IMDb Rating", y = "Revenue") +
         theme_minimal()
       
     } else if (input$plotType == "Correlation Plot") {
+      correlation_corr <- cor(imdb_data$IMDB_Rating, imdb_data$Meta_score, use = "complete.obs")
+      
       ggplot(imdb_data, aes(x = IMDB_Rating, y = Meta_score)) +
         geom_point(alpha = 0.7, color = "green") +
         geom_smooth(method = "lm", color = "red") +
-        labs(title = "Correlation Between IMDb Scores and Meta Scores",
+        labs(title = paste("Correlation Between IMDb Scores and Meta Scores\nPearson correlation:", round(correlation_corr, 2)),
              x = "IMDb Rating", y = "Meta Score") +
         theme_minimal()
     }
