@@ -61,8 +61,7 @@ ui <- fluidPage(
     tabPanel("Actor Viewer",
              sidebarLayout(
                sidebarPanel(
-                 selectInput("genreActor", "Select Genre:", 
-                             choices = c("All Genres", unique(imdb_data$Genre))),
+  
                  selectInput("actor", "Select Actor:", 
                              choices = unique(c(imdb_data$Star1, imdb_data$Star2, imdb_data$Star3, imdb_data$Star4))),
                  radioButtons("specialActors", "Select Special Actor:",
@@ -232,10 +231,6 @@ server <- function(input, output,session) {
         filter(Star1 == input$specialActors | Star2 == input$specialActors | Star3 == input$specialActors | Star4 == input$specialActors)
     }
     
-    if (input$genreActor != "All Genres") {
-      data <- data %>%
-        filter(str_detect(Genre, input$genreActor))
-    }
     
     data %>%
       filter(!is.na(.data[[criterion]])) %>%
